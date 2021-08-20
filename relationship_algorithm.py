@@ -1,5 +1,3 @@
-
-
 def relationship_algorithm(dictionary={},iterations=100):
   F={}
   for i in dictionary:
