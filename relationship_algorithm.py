@@ -1,7 +1,7 @@
 def relationship_algorithm(dictionary={},iterations=10):
   
   for i in dictionary:
-    F[i]=set(dictionary[i])
+    dictionary[i]=set(dictionary[i])
   for x in range(iterations):
     for k in dictionary:
         for j in dictionary[k]:
