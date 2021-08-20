@@ -4,7 +4,6 @@ def relationship_algorithm(dictionary={},iterations=10):
     F[i]=set(dictionary[i])
   for x in range(iterations):
     for k in F:
-
         for j in F[k]:
             if j in [c for c in F ]:
                F[k]= F[k].union(F[j])
