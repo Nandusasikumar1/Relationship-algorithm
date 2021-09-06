@@ -1,0 +1,911 @@
+{
+	"name": "Demand Forecasting",
+	"properties": {
+		"folder": {
+			"name": "day4"
+		},
+		"nbformat": 0,
+		"nbformat_minor": 0,
+		"bigDataPool": {
+			"referenceName": "pythonspark",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2"
+			}
+		},
+		"metadata": {
+			"saveOutput": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "python"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/e3047949-54a6-4aa8-b2bd-8e558bcc0850/resourceGroups/azure-nandu/providers/Microsoft.Synapse/workspaces/nandu-workspace/bigDataPools/pythonspark",
+				"name": "pythonspark",
+				"type": "Spark",
+				"endpoint": "https://nandu-workspace.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/pythonspark",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net"
+				},
+				"sparkVersion": "2.4",
+				"nodeCount": 10,
+				"cores": 4,
+				"memory": 28,
+				"extraHeader": null
+			}
+		},
+		"cells": [
+			{
+				"cell_type": "code",
+				"source": [
+					"import json\n",
+					"import pyodbc\n",
+					"from notebookutils import mssparkutils\n",
+					"CONFIG = {}"
+				],
+				"execution_count": 1
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"def load_config():\n",
+					"    config_file_path = \"abfss://a3sfilesystem@a3sadlsgen2.dfs.core.windows.net/adf/common/notebook_config.json\"\n",
+					"    configuration = json.loads(mssparkutils.fs.head(config_file_path))\n",
+					"    return configuration\n",
+					"\n",
+					"def get_config(key):\n",
+					"    value = CONFIG[key]\n",
+					"    return value"
+				],
+				"execution_count": 2
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"def read_into_df_from_target_sql_pool():\n",
+					"    host_name = get_config(\"target_sql_pool_server_name\")\n",
+					"    port_number = \"1433\"\n",
+					"    database_name = get_config(\"target_sql_pool_database_name\")\n",
+					"    table_name = get_config(\"target_sql_pool_table_name\")\n",
+					"    username = get_config(\"target_sql_pool_username\")\n",
+					"    password = get_config(\"target_sql_pool_password\")\n",
+					"\n",
+					"    jdbc_url = \"jdbc:sqlserver://{0}:{1};database={2}\".format(host_name,port_number,database_name)\n",
+					"    connection_properties = {\n",
+					"            \"user\" : username,\n",
+					"            \"password\" : password,\n",
+					"            \"driver\" : \"com.microsoft.sqlserver.jdbc.SQLServerDriver\"\n",
+					"        }\n",
+					"    \n",
+					"    df = spark.read.jdbc(\n",
+					"        url = jdbc_url,\n",
+					"        table = \"dbo.\" + table_name,\n",
+					"        properties = connection_properties\n",
+					"    )\n",
+					"    return df"
+				],
+				"execution_count": 3
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"def stage_table_in_target_adls(df,table_name):\n",
+					"    write_path = \"abfss://\" + get_config(\"target_adls_file_system\") + \"@\" + get_config(\"target_adls_name\") + \".dfs.core.windows.net/demand_forcasting/data/\" + table_name + \"/\"    \n",
+					"    df.write.parquet(\n",
+					"        path=write_path,\n",
+					"        mode=\"overwrite\",\n",
+					"        compression=\"snappy\"\n",
+					"    )\n",
+					"    return\n",
+					"\n",
+					"def get_mapping_datatype(source_datatype):\n",
+					"    datatype_mapping_file_path = \"\"\n",
+					"    return target_datatype\n",
+					"\n",
+					"def create_table_in_target_sql_pool(df,table_name):\n",
+					"    create_table_template_path = \"abfss://a3sfilesystem@a3sadlsgen2.dfs.core.windows.net/adf/common/adf_templates/create_table_template.sql\"\n",
+					"    create_table_template = mssparkutils.fs.head(create_table_template_path)\n",
+					"    cols_list = []\n",
+					"    for col in df.columns:\n",
+					"        #cols_list.append(f\"{col} nvarchar(4000)\")\n",
+					"        sdtype = str([x[1] for x in df.dtypes if x[0] == col][0])\n",
+					"        if sdtype == \"string\":\n",
+					"            dtype = \"nvarchar(4000)\"\n",
+					"        elif sdtype == \"double\":\n",
+					"            dtype = \"float\"\n",
+					"        else:\n",
+					"            dtype = sdtype\n",
+					"        cols_list.append(f\"{col} {dtype}\")\n",
+					"    create_table_statement = create_table_template.format(schema=\"dbo\",table=table_name,columns=\",\".join(cols_list),distribution=\"ROUND_ROBIN\",index=\"CLUSTERED COLUMNSTORE INDEX\")\n",
+					"    #print(create_table_statement)\n",
+					"    execute_statement_on_target_sql_pool(create_table_statement)\n",
+					"    return\n",
+					"\n",
+					"def execute_statement_on_target_sql_pool(query_statement):\n",
+					"    connection_string = \"DRIVER={0};SERVER={1};DATABASE={2};UID={3};PWD={4}\".format(\n",
+					"        \"ODBC Driver 17 for SQL Server\",\n",
+					"        get_config(\"target_sql_pool_server_name\"),\n",
+					"        get_config(\"target_sql_pool_database_name\"),\n",
+					"        get_config(\"target_sql_pool_username\"),\n",
+					"        get_config(\"target_sql_pool_password\")\n",
+					"    )\n",
+					"    conn = pyodbc.connect(connection_string)\n",
+					"    conn.autocommit = True\n",
+					"    cursor = conn.cursor()\n",
+					"    cursor.execute(query_statement)\n",
+					"    conn.close()\n",
+					"    return  \n",
+					"\n",
+					"def load_data_in_target_sql_pool(df,table_name):\n",
+					"    copy_statement_path = \"abfss://a3sfilesystem@a3sadlsgen2.dfs.core.windows.net/adf/common/adf_templates/copy_command_template_parquet.sql\"\n",
+					"    copy_statement_template = mssparkutils.fs.head(copy_statement_path)\n",
+					"    #write_path = \"abfss://\" + get_config(\"target_adls_file_system\") + \"@\" + get_config(\"target_adls_name\") + \".dfs.core.windows.net/demand_forcasting/data/\" + table_name+ \"/\"\n",
+					"    write_path = \"https://\" + get_config(\"target_adls_name\") + \".dfs.core.windows.net/\" + get_config(\"target_adls_file_system\") + \"/demand_forcasting/data/\" + table_name + \"/\"\n",
+					"    copy_statement = copy_statement_template.format(\n",
+					"        table = \"dbo.\" + table_name,\n",
+					"        path = write_path,\n",
+					"        job_id = mssparkutils.env.getJobId()\n",
+					"    )\n",
+					"    #print(copy_statement)\n",
+					"    execute_statement_on_target_sql_pool(copy_statement)\n",
+					"    return\n",
+					"\n",
+					"def store_table_in_target(df,table_name):\n",
+					"    stage_table_in_target_adls(df,table_name)\n",
+					"    create_table_in_target_sql_pool(df,table_name)\n",
+					"    load_data_in_target_sql_pool(df,table_name)\n",
+					"    return"
+				],
+				"execution_count": 4
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"CONFIG = load_config()"
+				],
+				"execution_count": 5
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"# OJ Sales Data\n",
+					"This Notebook Emphasizes on the analysis of Orange Jucie Sales data and builds predictive model to demonstrate analytics in Azure Synapse Studio"
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"## Read Data\n",
+					"\n",
+					"*Load the data stored in Synapse SQL pool into DataFrame for performing analysis*\n",
+					""
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"diagram": {
+						"activateDiagramType": 1,
+						"chartConfig": {
+							"category": "bar",
+							"keys": [
+								"store"
+							],
+							"values": [
+								"store"
+							],
+							"yLabel": "store",
+							"xLabel": "store",
+							"aggregation": "COUNT",
+							"aggByBackend": false
+						},
+						"aggData": "{\"store\":{\"2\":136,\"21\":136,\"47\":41,\"48\":67,\"56\":81,\"71\":57,\"72\":24,\"80\":81,\"90\":81,\"98\":30,\"100\":51,\"107\":54,\"115\":54,\"123\":54,\"132\":31,\"134\":23}}",
+						"isSummary": false,
+						"previewData": {
+							"filter": null
+						},
+						"isSql": false
+					}
+				},
+				"source": [
+					"# Load the oj data into DataFrame\n",
+					"\n",
+					"oj_df = read_into_df_from_target_sql_pool()\n",
+					"display(oj_df)"
+				],
+				"attachments": null,
+				"execution_count": 6
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"## Transform Data\n",
+					"\n",
+					"*Modify the datatypes of columns to best suit the data*"
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"from pyspark.sql.functions import col\n",
+					"\n",
+					"# Convert string column to float\n",
+					"float_columns = ['logmove', 'price', 'AGE60', 'EDUC', 'ETHNIC', 'INCOME', 'HHLARGE', 'WORKWOM', 'HVAL150', 'SSTRDIST', 'SSTRVOL', 'CPDIST5', 'CPWVOL5']\n",
+					"for col_name in float_columns:\n",
+					"    oj_df = oj_df.withColumn(col_name,col(col_name).cast('float'))\n",
+					"\n",
+					"# Convert string column to int\n",
+					"int_columns = ['store', 'week']\n",
+					"for col_name in int_columns:\n",
+					"    oj_df = oj_df.withColumn(col_name,col(col_name).cast('int'))\n",
+					"\n",
+					"# Convert string column to boolean\n",
+					"oj_df = oj_df.withColumn(\"feat\",col(\"feat\").cast('boolean'))"
+				],
+				"attachments": null,
+				"execution_count": 7
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"## Group Data\n",
+					"*Group the data based on the 7 dimensions which are demographic factors*"
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"diagram": {
+						"activateDiagramType": 1,
+						"chartConfig": {
+							"category": "bar",
+							"keys": [
+								"AGE60"
+							],
+							"values": [
+								"store"
+							],
+							"yLabel": "store",
+							"xLabel": "AGE60",
+							"aggregation": "SUM",
+							"aggByBackend": false
+						},
+						"aggData": "{\"store\":{\"0.058053967\":103,\"0.060280055\":115,\"0.06195391\":122,\"0.06689646\":21,\"0.08972372\":112,\"0.09015265\":134,\"0.09022228\":54,\"0.09792196\":48,\"0.10110045\":77,\"0.1030022\":94,\"0.10341287\":129,\"0.10700227\":126,\"0.10988735\":106,\"0.11010273\":117,\"0.110818915\":59,\"0.11194799\":78,\"0.114956684\":110,\"0.117368035\":5,\"0.119625814\":124,\"0.12157497\":119,\"0.1221\":84,\"0.1257983\":47,\"0.12885734\":45,\"0.13416997\":33,\"0.13528638\":104,\"0.13699514\":100,\"0.13782763\":92,\"0.13875638\":86,\"0.13961735\":132,\"0.14199202\":64,\"0.14239019\":93,\"0.14243324\":97,\"0.14511731\":130,\"0.14919242\":76,\"0.15105565\":109,\"0.1522412\":52,\"0.15269126\":80,\"0.15335737\":50,\"0.15748519\":128,\"0.16041422\":88,\"0.16358133\":121,\"0.1706548\":131,\"0.17554213\":105,\"0.17604095\":123,\"0.17615972\":51,\"0.1783414\":12,\"0.18111894\":81,\"0.18141776\":68,\"0.1818518\":40,\"0.1821733\":114,\"0.1874732\":49,\"0.18817338\":116,\"0.19023581\":70,\"0.19098277\":44,\"0.19288854\":56,\"0.20083469\":83,\"0.20581137\":89,\"0.2076995\":75,\"0.20960245\":137,\"0.21027298\":67,\"0.21051285\":111,\"0.21330878\":28,\"0.21394928\":14,\"0.21662623\":102,\"0.22253427\":62,\"0.22503522\":101,\"0.22521958\":90,\"0.23071751\":95,\"0.23286474\":2,\"0.24920052\":98,\"0.25239402\":8,\"0.25495303\":32,\"0.2557306\":91,\"0.2574508\":73,\"0.26186746\":107,\"0.26807088\":71,\"0.26911902\":9,\"0.27231336\":18,\"0.28372768\":72,\"0.2894424\":118,\"0.29935256\":113,\"0.3002787\":53,\"0.30739784\":74}}",
+						"isSummary": false,
+						"previewData": {
+							"filter": null
+						},
+						"isSql": false
+					}
+				},
+				"source": [
+					"# Group By Store and Feature\n",
+					"\n",
+					"select_columns = [\"store\", \"AGE60\",\"EDUC\",\"ETHNIC\",\"INCOME\",\"HHLARGE\",\"WORKWOM\",\"HVAL150\"]\n",
+					"\n",
+					"grouped_df = oj_df.groupBy(select_columns).count().select(select_columns)\n",
+					"display(grouped_df)"
+				],
+				"attachments": null,
+				"execution_count": 8
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"# I.] Principal Component Analysis (PCA)\n",
+					"*Perform PCA for dimesionality reduction. PCA basically helps us in reducing dimensions to ease our analysis and empasizes on retriveing metrics key affecting metrics in analysis *"
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"### Step 1 in PCA: Standardize column values\n",
+					"*We first standardize the column values of chosen 7 features which are AGE60, EDUC, ETHNIC, INCOME, HHLARGE, WORKWOM, HAVL150*"
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"from sklearn.preprocessing import StandardScaler\n",
+					"\n",
+					"# Define features column as combination of demographic columns\n",
+					"features = [\"AGE60\",\"EDUC\",\"ETHNIC\",\"INCOME\",\"HHLARGE\",\"WORKWOM\",\"HVAL150\"]\n",
+					"\n",
+					"# Separate store column with features column\n",
+					"x = grouped_df.selectExpr(features).collect()\n",
+					"y = grouped_df.selectExpr(\"store\").collect()\n",
+					"\n",
+					"# Standardize features column\n",
+					"x = StandardScaler().fit_transform(x)"
+				],
+				"attachments": null,
+				"execution_count": 9
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"### Step 2 in PCA: Perform PCA \n",
+					"*After standardization, we go ahead and perform PCA on the normalized data on first two most impacting dimensions*"
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"diagram": {
+						"activateDiagramType": 1,
+						"chartConfig": {
+							"category": "bar",
+							"keys": [
+								"PC2"
+							],
+							"values": [
+								"PC1"
+							],
+							"yLabel": "PC1",
+							"xLabel": "PC2",
+							"aggregation": "SUM",
+							"aggByBackend": false
+						},
+						"aggData": "{\"PC1\":{\"-0.03873958895391807\":-2.623372192786145,\"-0.15067431550416444\":-1.4537490715830077,\"-0.16892246839094857\":0.6963036348728926,\"-0.21313041788054587\":-1.3147846991991288,\"-0.21369618925446582\":1.503317090968776,\"-0.32455172674595384\":-3.234957625332789,\"-0.3281191583910343\":1.41914182126759,\"-0.330346886884046\":-0.3386853970570885,\"-0.3325698179897069\":0.508719181412021,\"-0.3343659229991434\":0.4953984079696994,\"-0.3673064616090691\":1.6232149259516806,\"-0.40746051648005954\":-2.189518924027958,\"-0.4852865349396626\":2.105277988591084,\"-0.5072052532385292\":-3.2363156025997317,\"-0.6440120633824193\":-0.9890469125585818,\"-0.6695104011014827\":-1.4694494400147275,\"-0.6732896086152916\":-0.8989964063549731,\"-0.6780479403533014\":-1.0685035127770084,\"-0.6855702512582764\":-1.1028636581500888,\"-0.718416275513894\":1.242668552401891,\"-0.829052385742887\":-0.22514800833716847,\"-1.0042350551599892\":-2.206787840433927,\"-1.014123899716118\":2.8669365154948214,\"-1.0471929098751585\":2.2292642044732487,\"-1.117961556766024\":2.128466210002335,\"-1.1280093107337943\":1.36932479914785,\"-1.2636801110439257\":2.0245970639747064,\"-1.2850706084934744\":-2.851225915693358,\"-1.30513548640345\":1.854522824166579,\"-1.404392376125565\":0.1550186307242613,\"-1.523527805923354\":-3.318494711396717,\"-1.7023780431103763\":1.3099278403951249,\"-1.732833170706893\":-0.6852169142442879,\"-1.7860314714830505\":1.8299400428368762,\"-1.9366763334577553\":-0.5321908070891849,\"-2.025998337703195\":-0.6021090984878835,\"-2.042683682373417\":-0.7338748272639893,\"-2.0526878881595056\":0.13398470046566058,\"-2.056587373380763\":-0.35136853272742385,\"-2.1759031897763\":1.1710805269188533,\"-2.536836690963233\":1.6602213984941439,\"-2.562099700336755\":0.5679166602449358,\"0.031085036262611755\":-1.911511836488018,\"0.049044121840671286\":2.555931828690899,\"0.2250825024333848\":1.6685775582057445,\"0.2808067153836958\":3.1520634386777444,\"0.41656819946492013\":-1.0266358248389833,\"0.47829523964959725\":2.567885625746465,\"0.5815651091739057\":-2.0775008715947743,\"0.6030987937803909\":-2.0622830756243675,\"0.609256665781625\":-0.9857666076852785,\"0.6216546101699363\":0.8599761572304294,\"0.6979151478039727\":-1.6850988043880006,\"0.7386273098936927\":-1.9591068861041834,\"0.8119704324840439\":0.53143605852472,\"0.8209040635935048\":2.9576791135591054,\"0.8667385701817986\":0.5060705172851048,\"0.8678146370170712\":-2.132476091142082,\"0.9022983643866022\":0.4904248037004313,\"0.9295317830451676\":-0.26242522442664373,\"0.9417378261309792\":-2.6904087053985952,\"1.0013341289606563\":-1.7953734041705423,\"1.018588405370183\":-1.3517897902214477,\"1.0236064814903285\":-2.5067109155977367,\"1.0447398057111916\":-2.4123349214117877,\"1.0675761547666525\":-2.989084604997827,\"1.0936418909902599\":4.44825885254592,\"1.0974258655909823\":2.162399293722011,\"1.139594302743416\":1.0080225512065892,\"1.1743600715028044\":-0.8312329670143244,\"1.1859211029240573\":0.8599963774131455,\"1.1874641711184948\":-0.5122754672644465,\"1.2322040835895056\":0.13585296474524552,\"1.329481186523491\":1.0292774998503855,\"1.4720513644334532\":1.0420995895633347,\"1.5053061654602886\":3.467331781154791,\"1.726712950039739\":-0.4703512780252082,\"1.786913394544447\":0.5136234492596207,\"1.8808277479271958\":-1.084490707549364,\"1.922949973311148\":-2.454814148814799,\"2.114265181489627\":4.459691273371306,\"2.3760071585810367\":0.1733727383250154,\"2.9493524713743695\":1.1431177373205472}}",
+						"isSummary": false,
+						"previewData": {
+							"filter": null
+						},
+						"isSql": false
+					}
+				},
+				"source": [
+					"from sklearn.decomposition import PCA\n",
+					"import pandas as pd\n",
+					"\n",
+					"# Define new number of dimesions to 2\n",
+					"pca = PCA(n_components=2)\n",
+					"\n",
+					"# Perform PCA on standardized features column\n",
+					"principalComponents = pca.fit_transform(x)\n",
+					"\n",
+					"# Create dataframe of PCA output\n",
+					"pca_schema = [\"PC1\", \"PC2\"]\n",
+					"principalPDf = pd.DataFrame(data=principalComponents,columns=pca_schema)\n",
+					"principalDf = spark.createDataFrame(principalPDf)\n",
+					"\n",
+					"display(principalDf)"
+				],
+				"attachments": null,
+				"execution_count": 10
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"### Step 3 in PCA: Diplay agaisnt Stores\n",
+					"*In order to visualize, we need the two PCA components to be plotted against stores. There are 83 stores hence, appending stores column to the PCA output dataframe*"
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"diagram": {
+						"activateDiagramType": 1,
+						"chartConfig": {
+							"category": "bar",
+							"keys": [
+								"PC2"
+							],
+							"values": [
+								"PC1"
+							],
+							"yLabel": "PC1",
+							"xLabel": "PC2",
+							"aggregation": "SUM",
+							"aggByBackend": false
+						},
+						"aggData": "{\"PC1\":{\"-0.03873958895391807\":-2.623372192786145,\"-0.15067431550416444\":-1.4537490715830077,\"-0.16892246839094857\":0.6963036348728926,\"-0.21313041788054587\":-1.3147846991991288,\"-0.21369618925446582\":1.503317090968776,\"-0.32455172674595384\":-3.234957625332789,\"-0.3281191583910343\":1.41914182126759,\"-0.330346886884046\":-0.3386853970570885,\"-0.3325698179897069\":0.508719181412021,\"-0.3343659229991434\":0.4953984079696994,\"-0.3673064616090691\":1.6232149259516806,\"-0.40746051648005954\":-2.189518924027958,\"-0.4852865349396626\":2.105277988591084,\"-0.5072052532385292\":-3.2363156025997317,\"-0.6440120633824193\":-0.9890469125585818,\"-0.6695104011014827\":-1.4694494400147275,\"-0.6732896086152916\":-0.8989964063549731,\"-0.6780479403533014\":-1.0685035127770084,\"-0.6855702512582764\":-1.1028636581500888,\"-0.718416275513894\":1.242668552401891,\"-0.829052385742887\":-0.22514800833716847,\"-1.0042350551599892\":-2.206787840433927,\"-1.014123899716118\":2.8669365154948214,\"-1.0471929098751585\":2.2292642044732487,\"-1.117961556766024\":2.128466210002335,\"-1.1280093107337943\":1.36932479914785,\"-1.2636801110439257\":2.0245970639747064,\"-1.2850706084934744\":-2.851225915693358,\"-1.30513548640345\":1.854522824166579,\"-1.404392376125565\":0.1550186307242613,\"-1.523527805923354\":-3.318494711396717,\"-1.7023780431103763\":1.3099278403951249,\"-1.732833170706893\":-0.6852169142442879,\"-1.7860314714830505\":1.8299400428368762,\"-1.9366763334577553\":-0.5321908070891849,\"-2.025998337703195\":-0.6021090984878835,\"-2.042683682373417\":-0.7338748272639893,\"-2.0526878881595056\":0.13398470046566058,\"-2.056587373380763\":-0.35136853272742385,\"-2.1759031897763\":1.1710805269188533,\"-2.536836690963233\":1.6602213984941439,\"-2.562099700336755\":0.5679166602449358,\"0.031085036262611755\":-1.911511836488018,\"0.049044121840671286\":2.555931828690899,\"0.2250825024333848\":1.6685775582057445,\"0.2808067153836958\":3.1520634386777444,\"0.41656819946492013\":-1.0266358248389833,\"0.47829523964959725\":2.567885625746465,\"0.5815651091739057\":-2.0775008715947743,\"0.6030987937803909\":-2.0622830756243675,\"0.609256665781625\":-0.9857666076852785,\"0.6216546101699363\":0.8599761572304294,\"0.6979151478039727\":-1.6850988043880006,\"0.7386273098936927\":-1.9591068861041834,\"0.8119704324840439\":0.53143605852472,\"0.8209040635935048\":2.9576791135591054,\"0.8667385701817986\":0.5060705172851048,\"0.8678146370170712\":-2.132476091142082,\"0.9022983643866022\":0.4904248037004313,\"0.9295317830451676\":-0.26242522442664373,\"0.9417378261309792\":-2.6904087053985952,\"1.0013341289606563\":-1.7953734041705423,\"1.018588405370183\":-1.3517897902214477,\"1.0236064814903285\":-2.5067109155977367,\"1.0447398057111916\":-2.4123349214117877,\"1.0675761547666525\":-2.989084604997827,\"1.0936418909902599\":4.44825885254592,\"1.0974258655909823\":2.162399293722011,\"1.139594302743416\":1.0080225512065892,\"1.1743600715028044\":-0.8312329670143244,\"1.1859211029240573\":0.8599963774131455,\"1.1874641711184948\":-0.5122754672644465,\"1.2322040835895056\":0.13585296474524552,\"1.329481186523491\":1.0292774998503855,\"1.4720513644334532\":1.0420995895633347,\"1.5053061654602886\":3.467331781154791,\"1.726712950039739\":-0.4703512780252082,\"1.786913394544447\":0.5136234492596207,\"1.8808277479271958\":-1.084490707549364,\"1.922949973311148\":-2.454814148814799,\"2.114265181489627\":4.459691273371306,\"2.3760071585810367\":0.1733727383250154,\"2.9493524713743695\":1.1431177373205472}}",
+						"isSummary": false,
+						"previewData": {
+							"filter": null
+						},
+						"isSql": false
+					}
+				},
+				"source": [
+					"from pyspark.sql.functions import monotonically_increasing_id, row_number\n",
+					"from pyspark.sql import Window\n",
+					"\n",
+					"store_df = sqlContext.createDataFrame(y, ['store'])\n",
+					"\n",
+					"principalDf = principalDf.withColumn(\"row_idx\", row_number().over(Window.orderBy(monotonically_increasing_id())))\n",
+					"store_df = store_df.withColumn(\"row_idx\", row_number().over(Window.orderBy(monotonically_increasing_id())))\n",
+					"\n",
+					"# Join PCA output with store values to assign PCA values against respective stores\n",
+					"pca_df = principalDf.join(store_df, principalDf.row_idx == store_df.row_idx).drop(\"row_idx\")\n",
+					"display(pca_df)"
+				],
+				"attachments": null,
+				"execution_count": 11
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"store_table_in_target(pca_df,\"pca_table\")"
+				],
+				"execution_count": 12
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"# II.] K-means Clustering\n",
+					"*To segregate the data in groups, we perform clustering on the data*"
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"### Step 1 in K-means Clustering: Vectorize Data\n",
+					"\n",
+					"*In this step we create vectors of features columns which intends to be input for clustering*"
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"diagram": {
+						"activateDiagramType": 1,
+						"chartConfig": {
+							"category": "bar",
+							"keys": [],
+							"values": [
+								"store"
+							],
+							"yLabel": "store",
+							"xLabel": "",
+							"aggregation": "SUM",
+							"aggByBackend": false
+						},
+						"aggData": "{\"store\":{\"\":6717}}",
+						"isSummary": false,
+						"previewData": {
+							"filter": null
+						},
+						"isSql": false
+					}
+				},
+				"source": [
+					"from pyspark.ml.clustering import KMeans\n",
+					"from pyspark.ml.feature import VectorAssembler\n",
+					"\n",
+					"# Define features column as combination of demographic data\n",
+					"features = [\"AGE60\",\"EDUC\",\"ETHNIC\",\"INCOME\",\"HHLARGE\",\"WORKWOM\",\"HVAL150\"]\n",
+					"\n",
+					"# Vectorize the features column\n",
+					"vecAssembler = VectorAssembler(inputCols=features, outputCol=\"features\")\n",
+					"df_kmeans = vecAssembler.transform(grouped_df).select('store', 'features')\n",
+					"display(df_kmeans)"
+				],
+				"attachments": null,
+				"execution_count": 13
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"### Step 2 in K-means Clustering: Identify and Set value of 'k'\n",
+					"*We can analyze and identify the optimize value of cluster size. Since we intend to make four different groups we choose k = 4*"
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"# Identify and set optimized value of k\n",
+					"k = 4\n",
+					"\n",
+					"# Find k mean clusters\n",
+					"kmeans = KMeans().setK(k).setSeed(1).setFeaturesCol(\"features\")\n",
+					"model = kmeans.fit(df_kmeans)\n",
+					"centers = model.clusterCenters()\n",
+					"\n",
+					"# Print centers of output clusters\n",
+					"print(\"Cluster Centers: \")\n",
+					"for center in centers:\n",
+					"    print(center)"
+				],
+				"attachments": null,
+				"execution_count": 14
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"### Step 3 in K-means Clustering: Map and Group Stores\n",
+					"*Finally we map and group all the stores into there associated cluster*"
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"diagram": {
+						"activateDiagramType": 1,
+						"chartConfig": {
+							"category": "bar",
+							"keys": [
+								"brand"
+							],
+							"values": [
+								"store"
+							],
+							"yLabel": "store",
+							"xLabel": "brand",
+							"aggregation": "SUM",
+							"aggByBackend": false
+						},
+						"aggData": "{\"store\":{\"dominicks\":22858,\"minute.maid\":20128,\"tropicana\":23210}}",
+						"isSummary": false,
+						"previewData": {
+							"filter": null
+						},
+						"isSql": false
+					}
+				},
+				"source": [
+					"from pyspark.sql.types import *\n",
+					"from pyspark.sql.functions import udf, log\n",
+					"\n",
+					"# Retrive predictions on k means model\n",
+					"transformed = model.transform(df_kmeans)\n",
+					"\n",
+					"# Map meaningful name to each predictions or cluster\n",
+					"def func(map_clusters):\n",
+					"    if map_clusters == 0:\n",
+					"        return \"AFFLUENT\"\n",
+					"    elif map_clusters == 1:\n",
+					"        return \"ELDER\"\n",
+					"    elif map_clusters == 2:\n",
+					"        return \"ETHNIC\"\n",
+					"    elif map_clusters == 3:\n",
+					"        return \"YOUNG\"\n",
+					"\n",
+					"func_udf = udf(func)\n",
+					"clustered_df = transformed.withColumn(\"GROUP\",func_udf(transformed['prediction'])).withColumnRenamed(\"store\",\"store_id\")\n",
+					"clustered_df = clustered_df.withColumnRenamed(\"prediction\",\"cluster\")\n",
+					"\n",
+					"# Join cluster output with original dataframe to classify the stores\n",
+					"predictive_df = oj_df.join(clustered_df,oj_df.store==clustered_df.store_id)\n",
+					"display(predictive_df)"
+				],
+				"attachments": null,
+				"execution_count": 15
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"# III.] Preparing Dataset for Predictive Analytics\n",
+					"*As part of preparing dataset for Predictive Analytics, we convert all the columns to int and ensure there are no string columns*"
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"## Step 1 in prepare dataset: Ensure numeric columns\n",
+					"*In order to process and vectorize data there should not be any string column. Hence we associate brand name with a numerical code*"
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"diagram": {
+						"activateDiagramType": 1,
+						"chartConfig": {
+							"category": "bar",
+							"keys": [
+								"brand"
+							],
+							"values": [
+								"store"
+							],
+							"yLabel": "store",
+							"xLabel": "brand",
+							"aggregation": "SUM",
+							"aggByBackend": false
+						},
+						"aggData": "{\"store\":{\"dominicks\":22858,\"minute.maid\":20128,\"tropicana\":23210}}",
+						"isSummary": false,
+						"previewData": {
+							"filter": null
+						},
+						"isSql": false
+					}
+				},
+				"source": [
+					"from pyspark.sql.types import *\n",
+					"\n",
+					"# Map each brand with brand code\n",
+					"def brand_func(brand):\n",
+					"    if brand == \"dominicks\":\n",
+					"        return 1\n",
+					"    elif brand == \"tropicana\":\n",
+					"        return 2\n",
+					"    elif brand == \"minute.maid\":\n",
+					"        return 3\n",
+					"\n",
+					"brand_func_udf = udf(brand_func)\n",
+					"predictive_df = predictive_df.withColumn(\"brand_code\",brand_func_udf(predictive_df['brand']).cast(IntegerType()))\n",
+					"display(predictive_df)"
+				],
+				"attachments": null,
+				"execution_count": 16
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"## Step 2 in prepare dataset: Vectorize dataframe columns\n",
+					"*Before passing the dataframe for regression and after ensuring there are no string columns in consideration of features, we vectorize group of columns that we will pass as features*\n",
+					""
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"diagram": {
+						"activateDiagramType": 1,
+						"chartConfig": {
+							"category": "bar",
+							"keys": [],
+							"values": [
+								"logmove"
+							],
+							"yLabel": "logmove",
+							"xLabel": "",
+							"aggregation": "SUM",
+							"aggByBackend": false
+						},
+						"aggData": "{\"logmove\":{\"\":9063.758803099994}}",
+						"isSummary": false,
+						"previewData": {
+							"filter": null
+						},
+						"isSql": false
+					}
+				},
+				"source": [
+					"from pyspark.ml.feature import VectorAssembler\n",
+					"\n",
+					"# Define columns to vectorize for predictions\n",
+					"input_columns = ['feat', 'price', 'week', 'SSTRVOL', 'CPDIST5','cluster', 'brand_code']\n",
+					"vectorAssembler = VectorAssembler(inputCols = input_columns, outputCol = 'linear_features')\n",
+					"vec_df = vectorAssembler.transform(predictive_df)\n",
+					"vec_df = vec_df.select(['store','brand','week','logmove','feat','price','GROUP','linear_features'])"
+				],
+				"attachments": null,
+				"execution_count": 17
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"## Step 3 in prepare dataset: Split training and testing data\n",
+					"*The dataset contains data of 121 weeks starting from week 40 to week 160. Among this, 81 weeks data i.e. ranging from week 40 to week 120 is the training data while on the other hand, 39 weeks data ranging from 121 to 160 is testing data*"
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"from pyspark.sql.functions import *\n",
+					"\n",
+					"# Split data based on week\n",
+					"train_df = vec_df.filter(col('week') <= 120)\n",
+					"test_df = vec_df.filter(col('week') > 120)"
+				],
+				"attachments": null,
+				"execution_count": 18
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"#  IV.] Perform Linear Regression\n",
+					""
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"## Step 1 in Linear Regression: Pass the vectorized data\n",
+					"*Pass the vectorized data to the Linear Regression Model and retrive the predictions*\n",
+					""
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"diagram": {
+						"activateDiagramType": 1,
+						"chartConfig": {
+							"category": "bar",
+							"keys": [
+								"week"
+							],
+							"values": [
+								"store"
+							],
+							"yLabel": "store",
+							"xLabel": "week",
+							"aggregation": "SUM",
+							"aggByBackend": false
+						},
+						"aggData": "{\"store\":{\"121\":2180,\"122\":2178,\"123\":1387,\"124\":1833,\"125\":1679,\"126\":1479,\"127\":1485,\"128\":2251,\"129\":2178,\"130\":1387,\"131\":1762,\"132\":1750,\"133\":1319,\"134\":1485,\"135\":2251,\"136\":2078,\"137\":1557,\"138\":1772,\"139\":1570,\"140\":1200,\"141\":1485,\"142\":2071,\"143\":1736,\"144\":1629,\"145\":1732,\"146\":1484,\"147\":1251,\"148\":1412,\"149\":2075,\"150\":1668,\"151\":1662,\"152\":1800,\"153\":1636,\"154\":1146,\"155\":1709,\"156\":2075,\"157\":1689,\"158\":1657,\"159\":1660,\"160\":1503}}",
+						"isSummary": false,
+						"previewData": {
+							"filter": null
+						},
+						"isSql": false
+					}
+				},
+				"source": [
+					"from pyspark.ml.regression import LinearRegression\n",
+					"\n",
+					"lr = LinearRegression(featuresCol = 'linear_features', labelCol='logmove', maxIter=10)\n",
+					"lr_model = lr.fit(train_df)\n",
+					"lr_predictions = lr_model.transform(test_df)\n",
+					"\n",
+					"predictions = lr_predictions.select(['store','brand','week','prediction','feat','price','GROUP','linear_features'])\n",
+					"\n",
+					"display(predictions)"
+				],
+				"attachments": null,
+				"execution_count": 19
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"## Step 2 in Linear Regression: Merge predictions and training data\n",
+					"*We then merge the training and predicted dataframes in order to analyze and plot graphs in Power BI*"
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"from pyspark.sql.functions import lit, when, col, regexp_extract \n",
+					"\n",
+					"predictions = predictions.withColumn(\"vType\",lit(\"Predicted\"))\n",
+					"train_df = train_df.withColumn(\"vType\",lit(\"Actual\"))\n",
+					"\n",
+					"union_df = train_df.union(predictions)\n",
+					"final_df = union_df.drop(\"linear_features\")\n",
+					"final_df = final_df.withColumn(\"feat\",col(\"feat\").cast('string'))\n",
+					"final_df = final_df.withColumnRenamed(\"GROUP\",\"PGROUPS\")\n",
+					"final_df.write.saveAsTable(\"predicted_oj_sales\",mode=\"overwrite\")"
+				],
+				"attachments": null,
+				"execution_count": 20
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"## Step 3 in Linear Regression: Write table to Synapse SQL\n",
+					"*Write the table to Synapse SQL Pool to connect to Power BI*\n",
+					""
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"final_df = final_df.withColumn(\"logmove\", col(\"logmove\").cast(DecimalType(38,17)))\n",
+					"final_df = final_df.withColumn(\"price\", col(\"price\").cast(DecimalType(38,17)))\n",
+					"store_table_in_target(final_df,get_config(\"target_sql_pool_output_table_name\"))"
+				],
+				"execution_count": 21
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"# V.] Evaluations of predictive models\n",
+					""
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"## Step 1 in Evaluations: Find the Root Squared value (R2)\n",
+					"*R Squared Value (R2)*"
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"from pyspark.ml.evaluation import RegressionEvaluator\n",
+					"\n",
+					"# Find R Squared (R2)\n",
+					"lr_evaluator = RegressionEvaluator(predictionCol=\"prediction\", \\\n",
+					"                 labelCol=\"logmove\",metricName=\"r2\")\n",
+					"print(\"R Squared (R2) on test data = %g\" % lr_evaluator.evaluate(lr_predictions))"
+				],
+				"attachments": null,
+				"execution_count": 22
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"## Step 2 in Evaluations: Find the Root Mean Square Error\n",
+					"*RMSE - Root Mean Square Error*"
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"# Find RMSE of the model\n",
+					"test_result = lr_model.evaluate(test_df)\n",
+					"print(\"Root Mean Squared Error (RMSE) on test data = %g\" % test_result.rootMeanSquaredError)"
+				],
+				"attachments": null,
+				"execution_count": 23
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"## Step 3 in Evaluations: Find MAPE and Accuracy of the model\n",
+					"*Mean Absolute Percentage Error and Accuracy*"
+				],
+				"attachments": null
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"# Calculate MAPE and Model Accuracy \n",
+					"\n",
+					"y_actual = [int(row.logmove) for row in lr_predictions.select('logmove').collect()]\n",
+					"y_predict = [int(row.prediction) for row in lr_predictions.select('prediction').collect()]\n",
+					"\n",
+					"sum_actuals = sum_errors = 0\n",
+					"for actual_val, predict_val in zip(y_actual, y_predict):\n",
+					"    abs_error = actual_val - predict_val\n",
+					"    if abs_error < 0:\n",
+					"        abs_error = abs_error * -1\n",
+					"\n",
+					"    sum_errors = sum_errors + abs_error\n",
+					"    sum_actuals = sum_actuals + actual_val\n",
+					"\n",
+					"mean_abs_percent_error = sum_errors / sum_actuals\n",
+					"\n",
+					"print(\"Model MAPE:\")\n",
+					"print(mean_abs_percent_error)\n",
+					"print()\n",
+					"print(\"Model Accuracy:\")\n",
+					"print(1 - mean_abs_percent_error)"
+				],
+				"attachments": null,
+				"execution_count": 24
+			}
+		]
+	}
+}

@@ -1,0 +1,17 @@
+{
+	"name": "sql script",
+	"properties": {
+		"content": {
+			"query": "SELECT TOP (20) *\nFROM [sqltable].[Azure Data Lake Storage Gen2 file] WHERE High>'8000' and low>'8000';\n\nUPDATE [sqltable].[Azure Data Lake Storage Gen2 file]\nSET Volume=Volume+1\nWHERE Open (SELECT Open FROM [sqltable].[Azure Data Lake Storage Gen2 file] WHERE Open > '8000');\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "sqlnandu",
+				"poolName": "sqlnandu"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

@@ -1,0 +1,435 @@
+{
+	"name": "CopyPipeline_vip",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy_vip",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [
+					{
+						"name": "Source",
+						"value": "snandufile//"
+					},
+					{
+						"name": "Destination",
+						"value": "hrsql.Azure Data Lake Storage Gen2 file"
+					}
+				],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"wildcardFileName": "*",
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings",
+							"skipLineCount": 0
+						}
+					},
+					"sink": {
+						"type": "SqlPoolSink",
+						"allowPolyBase": true,
+						"polyBaseSettings": {
+							"rejectValue": 0,
+							"rejectType": "value",
+							"useTypeDefault": true
+						},
+						"tableOption": "autoCreate"
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "Employee_Name",
+									"type": "String"
+								},
+								"sink": {
+									"name": "Employee_Name",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "EmpID",
+									"type": "String"
+								},
+								"sink": {
+									"name": "EmpID",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "MarriedID",
+									"type": "String"
+								},
+								"sink": {
+									"name": "MarriedID",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "MaritalStatusID",
+									"type": "String"
+								},
+								"sink": {
+									"name": "MaritalStatusID",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "GenderID",
+									"type": "String"
+								},
+								"sink": {
+									"name": "GenderID",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "EmpStatusID",
+									"type": "String"
+								},
+								"sink": {
+									"name": "EmpStatusID",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "DeptID",
+									"type": "String"
+								},
+								"sink": {
+									"name": "DeptID",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "PerfScoreID",
+									"type": "String"
+								},
+								"sink": {
+									"name": "PerfScoreID",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "FromDiversityJobFairID",
+									"type": "String"
+								},
+								"sink": {
+									"name": "FromDiversityJobFairID",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "Salary",
+									"type": "String"
+								},
+								"sink": {
+									"name": "Salary",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "Termd",
+									"type": "String"
+								},
+								"sink": {
+									"name": "Termd",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "PositionID",
+									"type": "String"
+								},
+								"sink": {
+									"name": "PositionID",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "Position",
+									"type": "String"
+								},
+								"sink": {
+									"name": "Position",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "State",
+									"type": "String"
+								},
+								"sink": {
+									"name": "State",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "Zip",
+									"type": "String"
+								},
+								"sink": {
+									"name": "Zip",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "DOB",
+									"type": "String"
+								},
+								"sink": {
+									"name": "DOB",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "Sex",
+									"type": "String"
+								},
+								"sink": {
+									"name": "Sex",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "MaritalDesc",
+									"type": "String"
+								},
+								"sink": {
+									"name": "MaritalDesc",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "CitizenDesc",
+									"type": "String"
+								},
+								"sink": {
+									"name": "CitizenDesc",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "HispanicLatino",
+									"type": "String"
+								},
+								"sink": {
+									"name": "HispanicLatino",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "RaceDesc",
+									"type": "String"
+								},
+								"sink": {
+									"name": "RaceDesc",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "DateofHire",
+									"type": "String"
+								},
+								"sink": {
+									"name": "DateofHire",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "DateofTermination",
+									"type": "String"
+								},
+								"sink": {
+									"name": "DateofTermination",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "TermReason",
+									"type": "String"
+								},
+								"sink": {
+									"name": "TermReason",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "EmploymentStatus",
+									"type": "String"
+								},
+								"sink": {
+									"name": "EmploymentStatus",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "Department",
+									"type": "String"
+								},
+								"sink": {
+									"name": "Department",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ManagerName",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ManagerName",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "ManagerID",
+									"type": "String"
+								},
+								"sink": {
+									"name": "ManagerID",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "RecruitmentSource",
+									"type": "String"
+								},
+								"sink": {
+									"name": "RecruitmentSource",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "PerformanceScore",
+									"type": "String"
+								},
+								"sink": {
+									"name": "PerformanceScore",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "EngagementSurvey",
+									"type": "String"
+								},
+								"sink": {
+									"name": "EngagementSurvey",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "EmpSatisfaction",
+									"type": "String"
+								},
+								"sink": {
+									"name": "EmpSatisfaction",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "SpecialProjectsCount",
+									"type": "String"
+								},
+								"sink": {
+									"name": "SpecialProjectsCount",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "LastPerformanceReview_Date",
+									"type": "String"
+								},
+								"sink": {
+									"name": "LastPerformanceReview_Date",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "DaysLateLast30",
+									"type": "String"
+								},
+								"sink": {
+									"name": "DaysLateLast30",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "Absences",
+									"type": "String"
+								},
+								"sink": {
+									"name": "Absences",
+									"type": "String"
+								}
+							}
+						]
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "SourceDataset_vip",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DestinationDataset_vip",
+						"type": "DatasetReference"
+					}
+				]
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2021-08-31T11:14:42Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

@@ -1,0 +1,17 @@
+{
+	"name": "SQL script 2",
+	"properties": {
+		"content": {
+			"query": "SELECT TOP (100) *\n FROM [diabsql1].[Azure Data Lake Storage Gen2 file]\n\n SELECT TOP (100) *\n FROM [diabsql1].[Azure Data Lake Storage Gen2 file] WHERE [BloodPressure]>75 AND [Glucose]>100;\n\n CREATE TABLE Persons (\n    PersonID int,\n    LastName varchar(255),\n    FirstName varchar(255),\n    Address varchar(255),\n    City varchar(255)\n);\ninsert INTO Persons values (1,'sasikumar','nandu','nandanam','kozhencherry');\nselect * from Persons;",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "sqlnandu",
+				"poolName": "sqlnandu"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

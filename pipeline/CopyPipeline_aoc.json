@@ -1,0 +1,164 @@
+{
+	"name": "CopyPipeline_aoc",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy_aoc",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [
+					{
+						"name": "Source",
+						"value": "snandufile//diabetes.csv"
+					},
+					{
+						"name": "Destination",
+						"value": "diabsql1.Azure Data Lake Storage Gen2 file"
+					}
+				],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings",
+							"skipLineCount": 0
+						}
+					},
+					"sink": {
+						"type": "SqlPoolSink",
+						"allowPolyBase": true,
+						"polyBaseSettings": {
+							"rejectValue": 0,
+							"rejectType": "value",
+							"useTypeDefault": true
+						},
+						"tableOption": "autoCreate"
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "Pregnancies",
+									"type": "String"
+								},
+								"sink": {
+									"name": "Pregnancies",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "Glucose",
+									"type": "String"
+								},
+								"sink": {
+									"name": "Glucose",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "BloodPressure",
+									"type": "String"
+								},
+								"sink": {
+									"name": "BloodPressure",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "SkinThickness",
+									"type": "String"
+								},
+								"sink": {
+									"name": "SkinThickness",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "Insulin",
+									"type": "String"
+								},
+								"sink": {
+									"name": "Insulin",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "BMI",
+									"type": "String"
+								},
+								"sink": {
+									"name": "BMI",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "DiabetesPedigreeFunction",
+									"type": "String"
+								},
+								"sink": {
+									"name": "DiabetesPedigreeFunction",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "Age",
+									"type": "String"
+								},
+								"sink": {
+									"name": "Age",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "Outcome",
+									"type": "String"
+								},
+								"sink": {
+									"name": "Outcome",
+									"type": "String"
+								}
+							}
+						]
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "SourceDataset_aoc",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DestinationDataset_aoc",
+						"type": "DatasetReference"
+					}
+				]
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2021-08-31T08:16:46Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

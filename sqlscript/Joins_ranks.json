@@ -1,0 +1,17 @@
+{
+	"name": "Joins_ranks",
+	"properties": {
+		"content": {
+			"query": "CREATE TABLE ExamResult\n(StudentName VARCHAR(70), \n Subject     VARCHAR(20), \n Marks       INT\n);\nINSERT INTO ExamResult\nVALUES\n('Lily', \n 'Maths', \n 65\n);\nINSERT INTO ExamResult\nVALUES\n('Lily', \n 'Science', \n 80\n);\nINSERT INTO ExamResult\nVALUES\n('Lily', \n 'english', \n 70\n);\nINSERT INTO ExamResult\nVALUES\n('Isabella', \n 'Maths', \n 50\n);\nINSERT INTO ExamResult\nVALUES\n('Isabella', \n 'Science', \n 70\n);\nINSERT INTO ExamResult\nVALUES\n('Isabella', \n 'english', \n 90\n);\nINSERT INTO ExamResult\nVALUES\n('Olivia', \n 'Maths', \n 55\n);\nINSERT INTO ExamResult\nVALUES\n('Olivia', \n 'Science', \n 60\n);\nINSERT INTO ExamResult\nVALUES\n('Olivia', \n 'english', \n 89\n);\n\n\nCREATE TABLE mockResult\n(StudentName VARCHAR(70), \n mockSubject     VARCHAR(20), \n mockMarks       INT\n);\nINSERT INTO mockResult \nVALUES\n('Lily', \n 'Mathetmatics', \n 65\n);\nINSERT INTO mockResult\nVALUES\n('Lily', \n 'Sscience', \n 80\n);\nINSERT INTO mockResult\nVALUES\n('Lily', \n 'Eenglish', \n 70\n);\nINSERT INTO mockResult\nVALUES\n('Isabella', \n 'Mathematics', \n 50\n);\nINSERT INTO mockResult\nVALUES\n('Isabella', \n 'SScience', \n 70\n);\nINSERT INTO mockResult\nVALUES\n('Isabella', \n 'Eenglish', \n 90\n);\nINSERT INTO mockResult\nVALUES\n('Olivia', \n 'Maths', \n 55\n);\nINSERT INTO mockResult\nVALUES\n('Olivia', \n 'SScience', \n 60\n);\nINSERT INTO mockResult\nVALUES\n('Olivia', \n 'Eenglish', \n 89\n);\n\n\nSELECT ExamResult.StudentName, ExamResult.Marks , mockResult.mockMarks from ExamResult RIGHT join mockResult on mockResult.StudentName=ExamResult.StudentName ;\n\n\n--https://www.sqlshack.com/overview-of-sql-rank-functions/\t\nSELECT Studentname, \n       Subject, \n       Marks, \n       ROW_NUMBER() OVER(ORDER BY Marks DESC) RowNumber\nFROM ExamResult;\n\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "master",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

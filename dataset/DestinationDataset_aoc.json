@@ -1,0 +1,17 @@
+{
+	"name": "DestinationDataset_aoc",
+	"properties": {
+		"annotations": [],
+		"type": "SqlPoolTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "diabsql1",
+			"table": "Azure Data Lake Storage Gen2 file"
+		},
+		"sqlPool": {
+			"referenceName": "sqlnandu",
+			"type": "SqlPoolReference"
+		}
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

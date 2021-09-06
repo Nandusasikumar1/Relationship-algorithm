@@ -1,0 +1,17 @@
+{
+	"name": "DQL_DDL",
+	"properties": {
+		"content": {
+			"query": "--(DQL)\nSELECT TOP (100) [Employee_Name]\n,[EmpID]\n,[MarriedID]\n,[MaritalStatusID]\n,[GenderID]\n,[EmpStatusID]\n,[DeptID]\n,[PerfScoreID]\n,[FromDiversityJobFairID]\n,[Salary]\n,[Termd]\n,[PositionID]\n,[Position]\n,[State]\n,[Zip]\n,[DOB]\n,[Sex]\n,[MaritalDesc]\n,[CitizenDesc]\n,[HispanicLatino]\n,[RaceDesc]\n,[DateofHire]\n,[DateofTermination]\n,[TermReason]\n,[EmploymentStatus]\n,[Department]\n,[ManagerName]\n,[ManagerID]\n,[RecruitmentSource]\n,[PerformanceScore]\n,[EngagementSurvey]\n,[EmpSatisfaction]\n,[SpecialProjectsCount]\n,[LastPerformanceReview_Date]\n,[Absences]\n FROM [hrtable].[Azure Data Lake Storage Gen2 file]\n\n\n\n --  (DDL)\n --CREATE \n CREATE TABLE A3S (\n    PersonID int,\n    LastName varchar(255),\n    FirstName varchar(255),\n    Address varchar(255),\n    City varchar(255)\n);\n -- ALTER\nALTER TABLE A3S\nADD Subscripition varchar(255);\n\n -- DROP\n ALTER TABLE A3S\n DROP COLUMN LastName;\n\n -- TRUNCATE\n TRUNCATE TABLE A3S;\n\n\n\n\n\n\n\n\n\n\n\n\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "master",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

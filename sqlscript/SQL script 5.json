@@ -1,0 +1,17 @@
+{
+	"name": "SQL script 5",
+	"properties": {
+		"content": {
+			"query": "SELECT  Sex,SUM(Salary) AS Salary\n FROM [sqlhrdata].[Azure Data Lake Storage Gen2 file] GROUP BY Sex;\n\nALTER TABLE [sqlhrdata].[Azure Data Lake Storage Gen2 file]\nALTER COLUMN Salary INT;\n\nSELECT Department,Sex,Sum(Salary) OVER (PARTITION BY Department) as dept_wise FROM [sqlhrdata].[Azure Data Lake Storage Gen2 file];\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "sqlnandu",
+				"poolName": "sqlnandu"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

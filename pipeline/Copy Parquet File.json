@@ -1,0 +1,86 @@
+{
+	"name": "Copy Parquet File",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy parquet data",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "ParquetSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"wildcardFileName": "*.parquet",
+							"enablePartitionDiscovery": false
+						}
+					},
+					"sink": {
+						"type": "SqlPoolSink",
+						"tableOption": "autoCreate",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "adls_parquet_file_dataset",
+						"type": "DatasetReference",
+						"parameters": {
+							"container_name": "training",
+							"folder_path": {
+								"value": "@pipeline().parameters.file_path",
+								"type": "Expression"
+							},
+							"file_name": "*.parquet"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "synapse_sql_pool_dataset",
+						"type": "DatasetReference",
+						"parameters": {
+							"schema_name": {
+								"value": "@first(split(pipeline().parameters.target_table,'.'))",
+								"type": "Expression"
+							},
+							"table_name": {
+								"value": "@last(split(pipeline().parameters.target_table,'.'))",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			}
+		],
+		"parameters": {
+			"file_path": {
+				"type": "string"
+			},
+			"target_table": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2021-09-06T11:17:55Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

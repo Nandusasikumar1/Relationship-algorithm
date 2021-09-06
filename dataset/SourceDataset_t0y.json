@@ -1,0 +1,61 @@
+{
+	"name": "SourceDataset_t0y",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "nandu-workspace-WorkspaceDefaultStorage",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "diabetes.csv",
+				"fileSystem": "snandufile"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "Pregnancies",
+				"type": "String"
+			},
+			{
+				"name": "Glucose",
+				"type": "String"
+			},
+			{
+				"name": "BloodPressure",
+				"type": "String"
+			},
+			{
+				"name": "SkinThickness",
+				"type": "String"
+			},
+			{
+				"name": "Insulin",
+				"type": "String"
+			},
+			{
+				"name": "BMI",
+				"type": "String"
+			},
+			{
+				"name": "DiabetesPedigreeFunction",
+				"type": "String"
+			},
+			{
+				"name": "Age",
+				"type": "String"
+			},
+			{
+				"name": "Outcome",
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

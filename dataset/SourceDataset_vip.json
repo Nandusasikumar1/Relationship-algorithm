@@ -1,0 +1,168 @@
+{
+	"name": "SourceDataset_vip",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "nandu-workspace-WorkspaceDefaultStorage",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileSystem": "snandufile"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "Employee_Name",
+				"type": "String"
+			},
+			{
+				"name": "EmpID",
+				"type": "String"
+			},
+			{
+				"name": "MarriedID",
+				"type": "String"
+			},
+			{
+				"name": "MaritalStatusID",
+				"type": "String"
+			},
+			{
+				"name": "GenderID",
+				"type": "String"
+			},
+			{
+				"name": "EmpStatusID",
+				"type": "String"
+			},
+			{
+				"name": "DeptID",
+				"type": "String"
+			},
+			{
+				"name": "PerfScoreID",
+				"type": "String"
+			},
+			{
+				"name": "FromDiversityJobFairID",
+				"type": "String"
+			},
+			{
+				"name": "Salary",
+				"type": "String"
+			},
+			{
+				"name": "Termd",
+				"type": "String"
+			},
+			{
+				"name": "PositionID",
+				"type": "String"
+			},
+			{
+				"name": "Position",
+				"type": "String"
+			},
+			{
+				"name": "State",
+				"type": "String"
+			},
+			{
+				"name": "Zip",
+				"type": "String"
+			},
+			{
+				"name": "DOB",
+				"type": "String"
+			},
+			{
+				"name": "Sex",
+				"type": "String"
+			},
+			{
+				"name": "MaritalDesc",
+				"type": "String"
+			},
+			{
+				"name": "CitizenDesc",
+				"type": "String"
+			},
+			{
+				"name": "HispanicLatino",
+				"type": "String"
+			},
+			{
+				"name": "RaceDesc",
+				"type": "String"
+			},
+			{
+				"name": "DateofHire",
+				"type": "String"
+			},
+			{
+				"name": "DateofTermination",
+				"type": "String"
+			},
+			{
+				"name": "TermReason",
+				"type": "String"
+			},
+			{
+				"name": "EmploymentStatus",
+				"type": "String"
+			},
+			{
+				"name": "Department",
+				"type": "String"
+			},
+			{
+				"name": "ManagerName",
+				"type": "String"
+			},
+			{
+				"name": "ManagerID",
+				"type": "String"
+			},
+			{
+				"name": "RecruitmentSource",
+				"type": "String"
+			},
+			{
+				"name": "PerformanceScore",
+				"type": "String"
+			},
+			{
+				"name": "EngagementSurvey",
+				"type": "String"
+			},
+			{
+				"name": "EmpSatisfaction",
+				"type": "String"
+			},
+			{
+				"name": "SpecialProjectsCount",
+				"type": "String"
+			},
+			{
+				"name": "LastPerformanceReview_Date",
+				"type": "String"
+			},
+			{
+				"name": "DaysLateLast30",
+				"type": "String"
+			},
+			{
+				"name": "Absences",
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}
